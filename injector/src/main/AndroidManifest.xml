@@ -1,0 +1,11 @@
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    package="ke.tang.contextinjector.injector">
+
+    <application>
+        <provider
+            android:name=".ContextHooker"
+            android:authorities="${applicationId}.contexthooker"
+            android:exported="false"
+            android:multiprocess="true" />
+    </application>
+</manifest>

@@ -1,0 +1,5 @@
+<resources>
+    <string name="app_name">Context Inject Sample</string>
+    <string name="toast_from_static_method">This is from static method</string>
+    <string name="toast_from_instance_method">This is from instance method</string>
+</resources>

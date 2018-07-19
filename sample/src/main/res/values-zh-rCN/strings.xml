@@ -1,0 +1,5 @@
+<resources>
+    <string name="app_name">Context注入示例</string>
+    <string name="toast_from_static_method">这是来自静态方法调用</string>
+    <string name="toast_from_instance_method">这是来自实例方法调用</string>
+</resources>

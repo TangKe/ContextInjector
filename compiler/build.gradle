@@ -1,0 +1,45 @@
+apply plugin: 'java-library'
+
+ext {
+    bintrayRepo = 'maven'
+    bintrayName = 'ContextInjectorCompiler'
+
+    publishedGroupId = 'ke.tang'
+    libraryName = 'ContextInjectorCompiler'
+    artifact = 'context-injector-compiler'
+
+    libraryDescription = 'Inject android application context any where'
+
+    siteUrl = 'https://github.com/TangKe/ContextInjector'
+    gitUrl = 'https://github.com/TangKe/ContextInjector.git'
+
+    libraryVersion = '1.0.1'
+
+    developerId = 'tangke'
+    developerName = 'Tang Ke'
+    developerEmail = 'tang.ke@me.com'
+
+    licenseName = 'The Apache Software License, Version 2.0'
+    licenseUrl = 'http://www.apache.org/licenses/LICENSE-2.0.txt'
+    allLicenses = ["Apache-2.0"]
+}
+
+apply from: 'https://raw.githubusercontent.com/nuuneoi/JCenter/master/installv1.gradle'
+apply from: 'https://raw.githubusercontent.com/nuuneoi/JCenter/master/bintrayv1.gradle'
+
+tasks.javadoc {
+    configurations.implementation.setCanBeResolved(true)
+    classpath += configurations.implementation
+    options.encoding "UTF-8"
+    options.charSet 'UTF-8'
+}
+
+dependencies {
+    implementation fileTree(dir: 'libs', include: ['*.jar'])
+    implementation "ke.tang:context-injector-annotations:1.0.1"
+    compileOnly "com.google.auto.service:auto-service:1.0-rc2"
+    implementation "com.squareup:javapoet:1.9.0"
+}
+
+sourceCompatibility = "1.7"
+targetCompatibility = "1.7"
