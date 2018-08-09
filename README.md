@@ -4,24 +4,17 @@ Inject application context reference to any where automatically. You can also in
 
 ### Usage
 
-1. add following line in your root build.gradle file
+1. add following line in your project build.gradle file
 
    ```groovy
-   buildscript {
-       dependencies {
-           classpath 'ke.tang:context-injector-plugin:1.0.1'
-       }
+   dependencies {
+       implementation "ke.tang:context-injector-annotations:1.0.2"
+       implementation "ke.tang:context-injector:1.0.2"
    }
    ```
 
-2. apply plugin in your module build.gradle file
+2. add annotation `InjectContext` to ***fields*** or ***method*** what you want(method must have **only one parameter** with Context type, **if your injected elements were `static` modified, the library will assign value or invoke method automatically when application create**)
 
-   ```groovy
-   apply plugin: "context-injector"
-   ```
-
-3. add annotation `InjectContext` to ***fields*** or ***method*** what you want(method must have one parameter with Context type, **if your injected elements were `static` modified, the library will assign value or invoke method automatically**)
-
-4. enjoy
+3. just enjoy
 
 

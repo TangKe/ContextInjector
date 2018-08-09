@@ -13,7 +13,7 @@ ext {
     siteUrl = 'https://github.com/TangKe/ContextInjector'
     gitUrl = 'https://github.com/TangKe/ContextInjector.git'
 
-    libraryVersion = '1.0.1'
+    libraryVersion = '1.0.2'
 
     developerId = 'tangke'
     developerName = 'Tang Ke'
@@ -55,5 +55,5 @@ tasks.javadoc {
 
 dependencies {
     implementation fileTree(dir: 'libs', include: ['*.jar'])
-    api "ke.tang:context-injector-annotations:1.0.1"
+    api "ke.tang:context-injector-annotations:1.0.2"
 }

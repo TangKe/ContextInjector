@@ -6,8 +6,6 @@ package ke.tang.contextinjector.annotations;
 public class Constants {
     private final static String GENERATE_CLASS_NAME_POSTFIX = "_Injector";
 
-    public final static String CONTEXT_INJECTOR_RESOURCE_PATH = "ContextInjector.resourcesPath";
-
     /**
      * 获取指定类名对应的Injector类名
      *

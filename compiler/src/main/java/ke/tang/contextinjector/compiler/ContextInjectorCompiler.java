@@ -8,9 +8,8 @@ import com.squareup.javapoet.ParameterizedTypeName;
 import com.squareup.javapoet.TypeName;
 import com.squareup.javapoet.TypeSpec;
 
-import java.io.File;
-import java.io.FileWriter;
 import java.io.IOException;
+import java.io.Writer;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -30,6 +29,8 @@ import javax.lang.model.element.VariableElement;
 import javax.lang.model.type.DeclaredType;
 import javax.lang.model.type.TypeKind;
 import javax.lang.model.type.TypeMirror;
+import javax.tools.FileObject;
+import javax.tools.StandardLocation;
 
 import ke.tang.contextinjector.annotations.Constants;
 import ke.tang.contextinjector.annotations.InjectContext;
@@ -43,24 +44,24 @@ import ke.tang.contextinjector.annotations.Injector;
 @SupportedAnnotationTypes("ke.tang.contextinjector.annotations.InjectContext")
 public class ContextInjectorCompiler extends AbstractProcessor {
     private final static Set<Modifier> EXCLUDE_MODIFIERS = new HashSet<>();
-    private FileWriter mFileWriter;
+    private final static String SERVICE_FILE_PATH = "META-INF/services/" + Injector.class.getName();
 
     static {
         EXCLUDE_MODIFIERS.add(Modifier.PRIVATE);
         EXCLUDE_MODIFIERS.add(Modifier.PROTECTED);
     }
 
+    private FileObject mServiceFilePath;
+    private Writer mWriter;
+
     private ClassName mContextInjectorClassName = ClassName.bestGuess("ke.tang.contextinjector.injector.ContextHooker");
 
     @Override
     public boolean process(Set<? extends TypeElement> set, RoundEnvironment roundEnvironment) {
-        if (null == mFileWriter) {
-            String path = processingEnv.getOptions().get(Constants.CONTEXT_INJECTOR_RESOURCE_PATH);
-            File servicesDirectory = new File(path, "META-INF/services");
-            servicesDirectory.mkdirs();
-            File servicesFile = new File(servicesDirectory, Injector.class.getName());
+        if (null == mServiceFilePath) {
             try {
-                mFileWriter = new FileWriter(servicesFile);
+                mServiceFilePath = processingEnv.getFiler().createResource(StandardLocation.CLASS_OUTPUT, "", SERVICE_FILE_PATH);
+                mWriter = mServiceFilePath.openWriter();
             } catch (IOException e) {
                 e.printStackTrace();
             }
@@ -113,27 +114,27 @@ public class ContextInjectorCompiler extends AbstractProcessor {
             }
         }
 
-
         try {
             for (Map.Entry<TypeElement, HashMap<InjectType, Set<Element>>> entry : extractedElement.entrySet()) {
                 ClassName className = ClassName.get(entry.getKey());
 
                 final String classSimpleName = Constants.buildInjectorSimpleClassName(className.simpleName());
                 JavaFile file = JavaFile.builder(className.packageName(), buildClass(classSimpleName, entry)).build();
-                mFileWriter.write(className.packageName() + "." + classSimpleName);
-                mFileWriter.write("\n");
+                mWriter.write(className.packageName() + "." + classSimpleName);
+                mWriter.write("\n");
                 file.writeTo(processingEnv.getFiler());
             }
+
             if (roundEnvironment.processingOver()) {
-                mFileWriter.flush();
-                mFileWriter.close();
+                mWriter.flush();
+                mWriter.close();
             }
         } catch (IOException e) {
             e.printStackTrace();
         }
 
 
-        return false;
+        return true;
     }
 
     private TypeSpec buildClass(String className, Map.Entry<TypeElement, HashMap<InjectType, Set<Element>>> entry) {
