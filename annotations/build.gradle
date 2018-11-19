@@ -13,7 +13,7 @@ ext {
     siteUrl = 'https://github.com/TangKe/ContextInjector'
     gitUrl = 'https://github.com/TangKe/ContextInjector.git'
 
-    libraryVersion = '1.0.2'
+    libraryVersion = '1.0.3'
 
     developerId = 'tangke'
     developerName = 'Tang Ke'

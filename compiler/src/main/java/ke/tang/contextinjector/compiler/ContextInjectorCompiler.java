@@ -139,7 +139,7 @@ public class ContextInjectorCompiler extends AbstractProcessor {
 
     private TypeSpec buildClass(String className, Map.Entry<TypeElement, HashMap<InjectType, Set<Element>>> entry) {
         final TypeSpec.Builder builder = TypeSpec.classBuilder(className)
-                .superclass(ParameterizedTypeName.get(ClassName.get(Injector.class), TypeName.get(entry.getKey().asType())))
+                .superclass(ParameterizedTypeName.get(ClassName.get(Injector.class), getRawType(TypeName.get(entry.getKey().asType()))))
                 .addModifiers(Modifier.PUBLIC);
 
         builder.addMethod(buildInjectStaticMethod(new InjectEntry(entry.getKey(), entry.getValue().get(InjectType.STATIC))));
@@ -147,9 +147,16 @@ public class ContextInjectorCompiler extends AbstractProcessor {
         return builder.build();
     }
 
+    public TypeName getRawType(TypeName name) {
+        if (name instanceof ParameterizedTypeName) {
+            return ((ParameterizedTypeName) name).rawType;
+        }
+        return name;
+    }
+
     private MethodSpec buildInjectInstanceMethod(InjectEntry entry) {
         MethodSpec.Builder builder = MethodSpec.methodBuilder("injectInstance")
-                .addParameter(TypeName.get(entry.getElement().asType()), "target")
+                .addParameter(getRawType(TypeName.get(entry.getElement().asType())), "target")
                 .addModifiers(Modifier.PROTECTED)
                 .returns(void.class)
                 .addAnnotation(Override.class);
@@ -177,10 +184,11 @@ public class ContextInjectorCompiler extends AbstractProcessor {
         if (null != entry.getInnerElement()) {
             for (Element element : entry.getInnerElement()) {
                 final ElementKind kind = element.getKind();
+                TypeName typeName = getRawType(TypeName.get(entry.getElement().asType()));
                 if (ElementKind.METHOD == kind) {
-                    builder.addStatement("$T.$N($T.getApplicationContext())", TypeName.get(entry.getElement().asType()), element.getSimpleName(), mContextInjectorClassName);
+                    builder.addStatement("$T.$N($T.getApplicationContext())", typeName, element.getSimpleName(), mContextInjectorClassName);
                 } else if (ElementKind.FIELD == kind) {
-                    builder.addStatement("$T.$N = $T.getApplicationContext()", TypeName.get(entry.getElement().asType()), element.getSimpleName(), mContextInjectorClassName);
+                    builder.addStatement("$T.$N = $T.getApplicationContext()", typeName, element.getSimpleName(), mContextInjectorClassName);
                 }
             }
         }
