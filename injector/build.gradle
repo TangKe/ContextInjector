@@ -32,6 +32,7 @@ android {
         targetSdkVersion versions.targetSdkVersion
         versionCode versions.versionCode
         versionName versions.versionName
+        multiDexEnabled = true
     }
 
     buildTypes {

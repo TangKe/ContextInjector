@@ -16,15 +16,15 @@ public class ContextInject {
      * 支持任意包含{@link ContextInject}注解的类的注入
      * 支持实例对象、类
      * <ul>
-     *     <li>当参数为实例对象时，会注入被{@link ContextInject}注解标记的实例变量、静态变量、实例方法、静态方法</li>
-     *     <li>当参数为类时，会注入被{@link ContextInject}注解标记静态变量、静态方法</li>
+     * <li>当参数为实例对象时，会注入被{@link ContextInject}注解标记的实例变量、静态变量、实例方法、静态方法</li>
+     * <li>当参数为类时，会注入被{@link ContextInject}注解标记静态变量、静态方法</li>
      * </ul>
      *
      * @param obj
      */
     public static void inject(Object obj) {
         boolean isClass = obj instanceof Class;
-        final Class<? extends Injector> injectorClass = findInjectorClass(obj);
+        final Class<? extends Injector<?>> injectorClass = findInjectorClass(obj);
         if (null == injectorClass) {
             throw new IllegalStateException(obj.getClass().getName() + " 找不到对应的注入类，请检查注解处理器是否正常工作或者混淆设置是否正确");
         }
@@ -44,11 +44,11 @@ public class ContextInject {
         }
     }
 
-    private static Class<? extends Injector> findInjectorClass(Object obj) {
+    private static Class<? extends Injector<?>> findInjectorClass(Object obj) {
         Class<?> clazz = obj instanceof Class ? (Class<?>) obj : obj.getClass();
 
         if (Injector.class.isAssignableFrom(clazz)) {
-            return (Class<? extends Injector>) clazz;
+            return (Class<? extends Injector<?>>) clazz;
         }
 
         Class<? extends Injector<?>> injectorClass = sInjectorClassCache.get(clazz);
@@ -58,11 +58,16 @@ public class ContextInject {
 
         try {
             injectorClass = (Class<? extends Injector<?>>) Class.forName(Constants.buildInjectorClassName(clazz.getCanonicalName()));
-            sInjectorClassCache.put(clazz, injectorClass);
-            return injectorClass;
         } catch (ClassNotFoundException e) {
-            e.printStackTrace();
+            if (null != clazz.getSuperclass()) {
+                injectorClass = findInjectorClass(clazz.getSuperclass());
+            }
         }
-        return null;
+        if (null != injectorClass) {
+            sInjectorClassCache.put(clazz, injectorClass);
+        }
+        return injectorClass;
     }
+
+
 }

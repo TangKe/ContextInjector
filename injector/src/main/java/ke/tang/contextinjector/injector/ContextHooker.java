@@ -28,7 +28,7 @@ public class ContextHooker extends ContentProvider {
         return false;
     }
 
-    private void autoInject() {
+    private static void autoInject() {
         final ServiceLoader<Injector> services = ServiceLoader.load(Injector.class);
         for (Injector injector : services) {
             ContextInject.inject(injector.getClass());
