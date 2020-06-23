@@ -1,5 +1,9 @@
 package ke.tang.contextinjector.injector;
 
+import android.app.Application;
+import android.content.Context;
+import android.net.Uri;
+
 import java.util.WeakHashMap;
 
 import ke.tang.contextinjector.annotations.Constants;
@@ -42,6 +46,15 @@ public class ContextInject {
                 e.printStackTrace();
             }
         }
+    }
+
+    /**
+     * If you use this sdk in your App which run in multi process, you should invoke this method in your {@link Application#onCreate()}, otherwise no need
+     *
+     * @param application
+     */
+    public static void installMultiProcess(Application application) {
+        application.getContentResolver().acquireContentProviderClient(Uri.parse(String.format("content://%s/", application.getPackageName().concat(".contexthooker")))).release();
     }
 
     private static Class<? extends Injector<?>> findInjectorClass(Object obj) {

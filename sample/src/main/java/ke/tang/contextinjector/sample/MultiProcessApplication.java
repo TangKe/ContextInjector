@@ -1,12 +1,13 @@
 package ke.tang.contextinjector.sample;
 
 import android.app.Application;
-import android.net.Uri;
+
+import ke.tang.contextinjector.injector.ContextInject;
 
 public class MultiProcessApplication extends Application {
     @Override
     public void onCreate() {
         super.onCreate();
-        getContentResolver().query(Uri.parse(String.format("content://%s/", BuildConfig.APPLICATION_ID + ".contexthooker")), null, null, null, null);
+        ContextInject.installMultiProcess(this);
     }
 }
