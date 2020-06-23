@@ -18,5 +18,5 @@ Inject application context reference to any where automatically. You can also in
 
 3. just enjoy
 
-   <u>If your application contains more than one process, just make your application inherit from `ContextInjectorMultiProcessApplication`</u>
+   <u>If your application contains more than one process, you should invoke `ContextInject.installMultiProcess(Application application)` in your `Application.onCreate()` method</u>
 
