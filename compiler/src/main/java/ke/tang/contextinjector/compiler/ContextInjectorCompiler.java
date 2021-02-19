@@ -1,7 +1,9 @@
 package ke.tang.contextinjector.compiler;
 
 import com.google.auto.service.AutoService;
+import com.squareup.javapoet.AnnotationSpec;
 import com.squareup.javapoet.ClassName;
+import com.squareup.javapoet.CodeBlock;
 import com.squareup.javapoet.JavaFile;
 import com.squareup.javapoet.MethodSpec;
 import com.squareup.javapoet.ParameterizedTypeName;
@@ -9,9 +11,7 @@ import com.squareup.javapoet.TypeName;
 import com.squareup.javapoet.TypeSpec;
 
 import java.io.IOException;
-import java.io.Writer;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -29,12 +29,11 @@ import javax.lang.model.element.VariableElement;
 import javax.lang.model.type.DeclaredType;
 import javax.lang.model.type.TypeKind;
 import javax.lang.model.type.TypeMirror;
-import javax.tools.FileObject;
-import javax.tools.StandardLocation;
 
 import ke.tang.contextinjector.annotations.Constants;
 import ke.tang.contextinjector.annotations.InjectContext;
 import ke.tang.contextinjector.annotations.Injector;
+import kotlin.Metadata;
 
 /**
  * 生成注入器类注解处理器
@@ -43,45 +42,28 @@ import ke.tang.contextinjector.annotations.Injector;
 @AutoService(Processor.class)
 @SupportedAnnotationTypes("ke.tang.contextinjector.annotations.InjectContext")
 public class ContextInjectorCompiler extends AbstractProcessor {
-    private final static Set<Modifier> EXCLUDE_MODIFIERS = new HashSet<>();
-    private final static String SERVICE_FILE_PATH = "META-INF/services/" + Injector.class.getName();
-
-    static {
-        EXCLUDE_MODIFIERS.add(Modifier.PRIVATE);
-        EXCLUDE_MODIFIERS.add(Modifier.PROTECTED);
-    }
-
-    private FileObject mServiceFilePath;
-    private Writer mWriter;
-
     private ClassName mContextInjectorClassName = ClassName.bestGuess("ke.tang.contextinjector.injector.ContextHooker");
 
     @Override
     public boolean process(Set<? extends TypeElement> set, RoundEnvironment roundEnvironment) {
-        if (null == mServiceFilePath) {
-            try {
-                mServiceFilePath = processingEnv.getFiler().createResource(StandardLocation.CLASS_OUTPUT, "", SERVICE_FILE_PATH);
-                mWriter = mServiceFilePath.openWriter();
-            } catch (IOException e) {
-                e.printStackTrace();
-            }
-        }
         Set<? extends Element> elements = roundEnvironment.getElementsAnnotatedWith(InjectContext.class);
 
-        HashMap<TypeElement, HashMap<InjectType, Set<Element>>> extractedElement = new HashMap<>();
+        HashMap<TypeElement, InjectEntry> extractedElement = new HashMap<>();
+
         for (Element element : elements) {
             TypeElement enclosingElement = (TypeElement) element.getEnclosingElement();
+            InjectEntry value = extractedElement.get(enclosingElement);
 
-            HashMap<InjectType, Set<Element>> value = extractedElement.get(enclosingElement);
             if (null == value) {
-                value = new HashMap<>();
+                value = new InjectEntry(enclosingElement);
                 extractedElement.put(enclosingElement, value);
             }
 
-            final Set<Modifier> modifiers = element.getModifiers();
+            final Set<Modifier> targetElementModifiers = element.getModifiers();
 
-            if (modifiers.contains(EXCLUDE_MODIFIERS)) {
-                continue;
+            if (isPrivate(element)) {
+                System.out.println(element.getSimpleName() + "要注入的变量或方法不能为私有的且所属类也不能为私有");
+                throw new IllegalStateException("要注入的变量或方法不能为私有的且所属类也不能为私有");
             }
 
             final ElementKind kind = element.getKind();
@@ -97,37 +79,21 @@ public class ContextInjectorCompiler extends AbstractProcessor {
                 }
             }
 
-            if (modifiers.contains(Modifier.STATIC)) {
-                Set<Element> staticElements = value.get(InjectType.STATIC);
-                if (null == staticElements) {
-                    staticElements = new HashSet<>();
-                    value.put(InjectType.STATIC, staticElements);
-                }
-                staticElements.add(element);
+            final KotlinClassInfo enclosingElementKotlinClassInfo = KotlinClassInfo.from(enclosingElement);
+            if (targetElementModifiers.contains(Modifier.STATIC) || enclosingElementKotlinClassInfo.isObject() || enclosingElementKotlinClassInfo.isCompanionObject()) {
+                value.getInjectElements(InjectType.STATIC).add(element);
             } else {
-                Set<Element> instanceElements = value.get(InjectType.INSTANCE);
-                if (null == instanceElements) {
-                    instanceElements = new HashSet<>();
-                    value.put(InjectType.INSTANCE, instanceElements);
-                }
-                instanceElements.add(element);
+                value.getInjectElements(InjectType.INSTANCE).add(element);
             }
         }
 
         try {
-            for (Map.Entry<TypeElement, HashMap<InjectType, Set<Element>>> entry : extractedElement.entrySet()) {
+            for (Map.Entry<TypeElement, InjectEntry> entry : extractedElement.entrySet()) {
                 ClassName className = ClassName.get(entry.getKey());
-
-                final String classSimpleName = Constants.buildInjectorSimpleClassName(className.simpleName());
-                JavaFile file = JavaFile.builder(className.packageName(), buildClass(classSimpleName, entry)).build();
-                mWriter.write(className.packageName() + "." + classSimpleName);
-                mWriter.write("\n");
+                final String packageName = className.packageName();
+                final String classSimpleName = Constants.buildInjectorSimpleClassName(className.reflectionName().replace(packageName.isEmpty() ? packageName : packageName.concat("."), ""));
+                JavaFile file = JavaFile.builder(packageName, buildClass(classSimpleName, entry)).build();
                 file.writeTo(processingEnv.getFiler());
-            }
-
-            if (roundEnvironment.processingOver()) {
-                mWriter.flush();
-                mWriter.close();
             }
         } catch (IOException e) {
             e.printStackTrace();
@@ -137,14 +103,28 @@ public class ContextInjectorCompiler extends AbstractProcessor {
         return true;
     }
 
-    private TypeSpec buildClass(String className, Map.Entry<TypeElement, HashMap<InjectType, Set<Element>>> entry) {
+    private TypeSpec buildClass(String className, Map.Entry<TypeElement, InjectEntry> entry) {
         final TypeSpec.Builder builder = TypeSpec.classBuilder(className)
                 .superclass(ParameterizedTypeName.get(ClassName.get(Injector.class), getRawType(TypeName.get(entry.getKey().asType()))))
+                .addAnnotation(AnnotationSpec.builder(AutoService.class).addMember("value", CodeBlock.builder().add("$T.class", Injector.class).build()).build())
                 .addModifiers(Modifier.PUBLIC);
 
-        builder.addMethod(buildInjectStaticMethod(new InjectEntry(entry.getKey(), entry.getValue().get(InjectType.STATIC))));
-        builder.addMethod(buildInjectInstanceMethod(new InjectEntry(entry.getKey(), entry.getValue().get(InjectType.INSTANCE))));
+        builder.addMethod(buildInjectStaticMethod(entry.getValue()));
+        builder.addMethod(buildInjectInstanceMethod(entry.getValue()));
         return builder.build();
+    }
+
+    private boolean isPrivate(Element element) {
+        if (null != element) {
+            final KotlinClassInfo kotlinClassInfo = KotlinClassInfo.from(element);
+            if (kotlinClassInfo.isKotlinClass()) {
+                return kotlinClassInfo.isPrivate() || isPrivate(element.getEnclosingElement());
+            } else {
+                return element.getModifiers().contains(Modifier.PRIVATE) || isPrivate(element.getEnclosingElement());
+            }
+        } else {
+            return false;
+        }
     }
 
     public TypeName getRawType(TypeName name) {
@@ -156,22 +136,19 @@ public class ContextInjectorCompiler extends AbstractProcessor {
 
     private MethodSpec buildInjectInstanceMethod(InjectEntry entry) {
         MethodSpec.Builder builder = MethodSpec.methodBuilder("injectInstance")
-                .addParameter(getRawType(TypeName.get(entry.getElement().asType())), "target")
+                .addParameter(getRawType(TypeName.get(entry.getEnclosingElement().asType())), "target")
                 .addModifiers(Modifier.PROTECTED)
                 .returns(void.class)
                 .addAnnotation(Override.class);
 
-        if (null != entry.getInnerElement()) {
-            for (Element element : entry.getInnerElement()) {
-                final ElementKind kind = element.getKind();
-                if (ElementKind.METHOD == kind) {
-                    builder.addStatement("target.$N($T.getApplicationContext())", element.getSimpleName(), mContextInjectorClassName);
-                } else if (ElementKind.FIELD == kind) {
-                    builder.addStatement("target.$N = $T.getApplicationContext()", element.getSimpleName(), mContextInjectorClassName);
-                }
+        for (Element element : entry.getInjectElements(InjectType.INSTANCE)) {
+            final ElementKind kind = element.getKind();
+            if (ElementKind.METHOD == kind) {
+                builder.addStatement("target.$N($T.getApplicationContext())", element.getSimpleName(), mContextInjectorClassName);
+            } else if (ElementKind.FIELD == kind) {
+                builder.addStatement("target.$N = $T.getApplicationContext()", element.getSimpleName(), mContextInjectorClassName);
             }
         }
-
 
         return builder.build();
     }
@@ -181,18 +158,28 @@ public class ContextInjectorCompiler extends AbstractProcessor {
                 .addModifiers(Modifier.PROTECTED)
                 .returns(void.class)
                 .addAnnotation(Override.class);
-        if (null != entry.getInnerElement()) {
-            for (Element element : entry.getInnerElement()) {
-                final ElementKind kind = element.getKind();
-                TypeName typeName = getRawType(TypeName.get(entry.getElement().asType()));
-                if (ElementKind.METHOD == kind) {
+        for (Element element : entry.getInjectElements(InjectType.STATIC)) {
+            final KotlinClassInfo enclosingKotlinClassInfo = KotlinClassInfo.from(entry.getEnclosingElement());
+            final ElementKind kind = element.getKind();
+            TypeName typeName = getRawType(TypeName.get(entry.getEnclosingElement().asType()));
+            if (ElementKind.METHOD == kind) {
+                if (enclosingKotlinClassInfo.isObject()) {
+                    builder.addStatement("$T.INSTANCE.$N($T.getApplicationContext())", typeName, element.getSimpleName(), mContextInjectorClassName);
+                } else if (enclosingKotlinClassInfo.isCompanionObject()) {
                     builder.addStatement("$T.$N($T.getApplicationContext())", typeName, element.getSimpleName(), mContextInjectorClassName);
-                } else if (ElementKind.FIELD == kind) {
-                    builder.addStatement("$T.$N = $T.getApplicationContext()", typeName, element.getSimpleName(), mContextInjectorClassName);
+                } else {
+                    builder.addStatement("$T.$N($T.getApplicationContext())", typeName, element.getSimpleName(), mContextInjectorClassName);
                 }
+            } else if (ElementKind.FIELD == kind) {
+//                if (enclosingKotlinClassInfo.isObject()) {
+//                    builder.addStatement("$T.INSTANCE.$N = $T.getApplicationContext()", typeName, element.getSimpleName(), mContextInjectorClassName);
+//                } else if (enclosingKotlinClassInfo.isCompanionObject()) {
+//                    builder.addStatement("$T.$N.$N = $T.getApplicationContext()", typeName, targetClassInfo.getCompanionObjectName(), element.getSimpleName(), mContextInjectorClassName);
+//                } else {
+                builder.addStatement("$T.$N = $T.getApplicationContext()", typeName, element.getSimpleName(), mContextInjectorClassName);
+//                }
             }
         }
-
         return builder.build();
     }
 

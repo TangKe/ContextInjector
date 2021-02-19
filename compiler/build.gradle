@@ -37,8 +37,10 @@ tasks.javadoc {
 dependencies {
     implementation fileTree(dir: 'libs', include: ['*.jar'])
     implementation "ke.tang:context-injector-annotations:${versions.versionName}"
-    compileOnly "com.google.auto.service:auto-service:${versions.library.auto}"
+    annotationProcessor "com.google.auto.service:auto-service:${versions.library.auto}"
+    implementation "com.google.auto.service:auto-service-annotations:${versions.library.auto}"
     implementation "com.squareup:javapoet:${versions.library.javaPoet}"
+    implementation "org.jetbrains.kotlinx:kotlinx-metadata-jvm:${versions.library.kotlinMetadata}"
 }
 
 sourceCompatibility = "1.7"

@@ -6,11 +6,13 @@ import android.support.annotation.Nullable;
 import android.support.v7.app.AppCompatActivity;
 import android.view.View;
 
+import ke.tang.contextinjector.injector.ContextInject;
+
 public class LauncherActivity extends AppCompatActivity implements View.OnClickListener {
     @Override
     protected void onCreate(@Nullable Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        setContentView(R.layout.activity_laucnher);
+        setContentView(R.layout.activity_launcher);
     }
 
     @Override
@@ -21,6 +23,9 @@ public class LauncherActivity extends AppCompatActivity implements View.OnClickL
                 break;
             case R.id.noneMainProcess:
                 startActivity(new Intent(this, MultiprocessTestActivity.class));
+                break;
+            case R.id.kotlin:
+//                startActivity(new Intent(this, KotlinActivity.class));
                 break;
         }
     }

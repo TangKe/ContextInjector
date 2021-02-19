@@ -24,6 +24,10 @@
 
         </activity>
 
+        <activity android:name=".KotlinActivity">
+
+        </activity>
+
         <activity
             android:name=".MultiprocessTestActivity"
             android:label="非主进程"

@@ -1,31 +1,33 @@
 package ke.tang.contextinjector.compiler;
 
+import org.jetbrains.annotations.NotNull;
+
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.Map;
 import java.util.Set;
 
 import javax.lang.model.element.Element;
 
 class InjectEntry {
-    private Element mElement;
-    private Set<Element> mInnerElement;
+    private Element mEnclosingElement;
+    private Map<InjectType, Set<Element>> mInjectElements = new HashMap<>();
 
-    public InjectEntry(Element element, Set<Element> innerElement) {
-        mElement = element;
-        mInnerElement = innerElement;
+    public InjectEntry(Element enclosingElement) {
+        this.mEnclosingElement = enclosingElement;
     }
 
-    public Element getElement() {
-        return mElement;
+    public Element getEnclosingElement() {
+        return mEnclosingElement;
     }
 
-    public void setElement(Element element) {
-        mElement = element;
-    }
-
-    public Set<Element> getInnerElement() {
-        return mInnerElement;
-    }
-
-    public void setInnerElement(Set<Element> innerElement) {
-        mInnerElement = innerElement;
+    @NotNull
+    public Set<Element> getInjectElements(InjectType injectType) {
+        Set<Element> elements = mInjectElements.get(injectType);
+        if (null == elements) {
+            elements = new HashSet<>();
+            mInjectElements.put(injectType, elements);
+        }
+        return elements;
     }
 }

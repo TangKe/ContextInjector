@@ -70,7 +70,7 @@ public class ContextInject {
         }
 
         try {
-            injectorClass = (Class<? extends Injector<?>>) Class.forName(Constants.buildInjectorClassName(clazz.getCanonicalName()));
+            injectorClass = (Class<? extends Injector<?>>) Class.forName(Constants.buildInjectorClassName(clazz.getName()));
         } catch (ClassNotFoundException e) {
             if (null != clazz.getSuperclass()) {
                 injectorClass = findInjectorClass(clazz.getSuperclass());

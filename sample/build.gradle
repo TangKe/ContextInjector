@@ -1,4 +1,6 @@
 apply plugin: 'com.android.application'
+apply plugin: 'kotlin-android'
+apply plugin: 'kotlin-kapt'
 
 android {
     compileSdkVersion 28
@@ -27,5 +29,10 @@ dependencies {
     implementation "com.android.support.constraint:constraint-layout:${versions.library.constraint}"
 
     implementation project(':injector')
-    annotationProcessor project(':compiler')
+    kapt project(':compiler')
+    kapt "com.google.auto.service:auto-service:${versions.library.auto}"
+    implementation "org.jetbrains.kotlin:kotlin-stdlib-jdk7:${versions.library.kotlin}"
+}
+repositories {
+    mavenCentral()
 }
