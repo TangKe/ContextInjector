@@ -25,4 +25,10 @@ public abstract class Injector<T> {
      */
     protected abstract void injectInstance(T target);
 
+    /**
+     * 获取优先级
+     *
+     * @return 越大，优先级越高
+     */
+    public abstract int getPriority();
 }

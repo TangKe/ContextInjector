@@ -12,10 +12,10 @@ import ke.tang.contextinjector.annotations.InjectContext;
 import ke.tang.contextinjector.injector.ContextInject;
 
 public class MainActivity extends AppCompatActivity implements View.OnClickListener {
-    @InjectContext
+    @InjectContext(priority = 100)
     static Context sStaticContext;
 
-    @InjectContext
+    @InjectContext(priority = 1000)
     static void onStaticContextReady(Context context) {
         Toast.makeText(context, R.string.toast_from_static_method, Toast.LENGTH_SHORT).show();
     }

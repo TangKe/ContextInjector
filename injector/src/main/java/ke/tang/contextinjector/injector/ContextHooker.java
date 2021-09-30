@@ -6,6 +6,9 @@ import android.content.Context;
 import android.database.Cursor;
 import android.net.Uri;
 
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
 import java.util.ServiceLoader;
 
 import ke.tang.contextinjector.annotations.Injector;
@@ -30,7 +33,13 @@ public class ContextHooker extends ContentProvider {
 
     private static void autoInject() {
         final ServiceLoader<Injector> services = ServiceLoader.load(Injector.class);
+        final List<Injector> injectors = new ArrayList<>();
         for (Injector injector : services) {
+            injectors.add(injector);
+        }
+
+        Collections.sort(injectors, new InjectorComparator());
+        for (Injector injector : injectors) {
             ContextInject.inject(injector.getClass());
         }
     }

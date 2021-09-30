@@ -45,16 +45,6 @@ android {
 
 }
 
-apply from: 'https://raw.githubusercontent.com/nuuneoi/JCenter/master/installv1.gradle'
-apply from: 'https://raw.githubusercontent.com/nuuneoi/JCenter/master/bintrayv1.gradle'
-
-tasks.javadoc {
-    configurations.implementation.setCanBeResolved(true)
-    classpath += project.files(android.getBootClasspath().join(File.pathSeparator)) + configurations.implementation
-    options.encoding "UTF-8"
-    options.charSet 'UTF-8'
-}
-
 dependencies {
     implementation fileTree(dir: 'libs', include: ['*.jar'])
     api "ke.tang:context-injector-annotations:${versions.versionName}"
@@ -64,10 +54,11 @@ dependencies {
 afterEvaluate {
     publishing {
         publications {
-            product(MavenPublication) {
+            maven(MavenPublication) {
                 groupId = 'ke.tang'
                 artifactId = 'context-injector'
                 version = versions.versionName
+                from components.release
             }
         }
     }

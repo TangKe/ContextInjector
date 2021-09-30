@@ -11,6 +11,8 @@ import com.squareup.javapoet.TypeName;
 import com.squareup.javapoet.TypeSpec;
 
 import java.io.IOException;
+import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -43,6 +45,7 @@ import kotlin.Metadata;
 @SupportedAnnotationTypes("ke.tang.contextinjector.annotations.InjectContext")
 public class ContextInjectorCompiler extends AbstractProcessor {
     private ClassName mContextInjectorClassName = ClassName.bestGuess("ke.tang.contextinjector.injector.ContextHooker");
+    private InjectElementPriorityComparator mInjectElementPriorityComparator = new InjectElementPriorityComparator();
 
     @Override
     public boolean process(Set<? extends TypeElement> set, RoundEnvironment roundEnvironment) {
@@ -111,6 +114,7 @@ public class ContextInjectorCompiler extends AbstractProcessor {
 
         builder.addMethod(buildInjectStaticMethod(entry.getValue()));
         builder.addMethod(buildInjectInstanceMethod(entry.getValue()));
+        builder.addMethod(buildGetPriorityMethod(entry.getValue()));
         return builder.build();
     }
 
@@ -140,8 +144,9 @@ public class ContextInjectorCompiler extends AbstractProcessor {
                 .addModifiers(Modifier.PROTECTED)
                 .returns(void.class)
                 .addAnnotation(Override.class);
-
-        for (Element element : entry.getInjectElements(InjectType.INSTANCE)) {
+        final List<Element> elements = new ArrayList<>(entry.getInjectElements(InjectType.INSTANCE));
+        Collections.sort(elements, mInjectElementPriorityComparator);
+        for (Element element : elements) {
             final ElementKind kind = element.getKind();
             if (ElementKind.METHOD == kind) {
                 builder.addStatement("target.$N($T.getApplicationContext())", element.getSimpleName(), mContextInjectorClassName);
@@ -158,7 +163,9 @@ public class ContextInjectorCompiler extends AbstractProcessor {
                 .addModifiers(Modifier.PROTECTED)
                 .returns(void.class)
                 .addAnnotation(Override.class);
-        for (Element element : entry.getInjectElements(InjectType.STATIC)) {
+        final List<Element> elements = new ArrayList<>(entry.getInjectElements(InjectType.STATIC));
+        Collections.sort(elements, mInjectElementPriorityComparator);
+        for (Element element : elements) {
             final KotlinClassInfo enclosingKotlinClassInfo = KotlinClassInfo.from(entry.getEnclosingElement());
             final ElementKind kind = element.getKind();
             TypeName typeName = getRawType(TypeName.get(entry.getEnclosingElement().asType()));
@@ -180,6 +187,27 @@ public class ContextInjectorCompiler extends AbstractProcessor {
 //                }
             }
         }
+        return builder.build();
+    }
+
+    private MethodSpec buildGetPriorityMethod(InjectEntry entry) {
+        final MethodSpec.Builder builder = MethodSpec.methodBuilder("getPriority")
+                .addModifiers(Modifier.PUBLIC)
+                .returns(int.class)
+                .addAnnotation(Override.class);
+        int totalPriority = 0;
+        Set<Element> instanceInjectElements = entry.getInjectElements(InjectType.INSTANCE);
+        for (final Element element : instanceInjectElements) {
+            final InjectContext injectContext = element.getAnnotation(InjectContext.class);
+            totalPriority += null != injectContext ? element.getAnnotation(InjectContext.class).priority() : 0;
+        }
+
+        Set<Element> staticInjectElements = entry.getInjectElements(InjectType.STATIC);
+        for (final Element element : staticInjectElements) {
+            final InjectContext injectContext = element.getAnnotation(InjectContext.class);
+            totalPriority += null != injectContext ? element.getAnnotation(InjectContext.class).priority() : 0;
+        }
+        builder.addStatement("return " + totalPriority);
         return builder.build();
     }
 
