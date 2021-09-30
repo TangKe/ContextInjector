@@ -1,4 +1,5 @@
 apply plugin: 'com.android.library'
+apply plugin: 'maven-publish'
 
 ext {
     bintrayRepo = 'maven'
@@ -58,4 +59,16 @@ dependencies {
     implementation fileTree(dir: 'libs', include: ['*.jar'])
     api "ke.tang:context-injector-annotations:${versions.versionName}"
     api "com.google.auto.service:auto-service-annotations:${versions.library.auto}"
+}
+
+afterEvaluate {
+    publishing {
+        publications {
+            product(MavenPublication) {
+                groupId = 'ke.tang'
+                artifactId = 'context-injector'
+                version = versions.versionName
+            }
+        }
+    }
 }
