@@ -1,0 +1,1 @@
+-keep class ** implements ke.tang.contextinjector.annotations.Injector{ *; }

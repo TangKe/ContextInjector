@@ -46,6 +46,15 @@ targetCompatibility = "1.7"
 
 afterEvaluate {
     publishing {
+        repositories {
+            maven {
+                url = 'https://artifactory.jd.com/libs-releases-local/'
+                credentials {
+                    username = 'tangke'
+                    password = 'AKCp5fUsH5mv2wU9XEZ344ySG9wV4mD2xnXRzi1ErGo6rsXXg5uq8oPgB7FitRgNp7RjfKstN'
+                }
+            }
+        }
         publications {
             maven(MavenPublication) {
                 groupId = 'ke.tang'
