@@ -8,9 +8,9 @@ Inject application context reference to any where automatically. You can also in
 
    ```groovy
    dependencies {
-       annotationProcessor "ke.tang:context-injector-compiler:1.0.6"
+       annotationProcessor "com.github.TangKe:ContextInjectorCompiler:latest.version"
        annotationProcessor "com.google.auto.service:auto-service:1.0-rc7"
-       implementation "ke.tang:context-injector:1.0.6"
+       implementation "com.github.TangKe:ContextInjector:latest.version"
    }
    ```
 
