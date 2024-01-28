@@ -1,0 +1,75 @@
+apply plugin: 'com.android.library'
+apply plugin: 'maven-publish'
+
+android {
+    compileSdkVersion versions.compileSdkVersion
+
+    namespace 'ke.tang.contextinjector.injector'
+
+    defaultConfig {
+        minSdkVersion versions.minSdkVersion
+        targetSdkVersion versions.targetSdkVersion
+        versionCode versions.versionCode
+        versionName versions.versionName
+        multiDexEnabled = true
+        consumerProguardFiles "consumer-rules.pro"
+    }
+
+    publishing {
+        singleVariant("release") {
+            withSourcesJar()
+            withJavadocJar()
+        }
+    }
+
+    buildTypes {
+        release {
+            minifyEnabled false
+            proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
+        }
+    }
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_1_8
+        targetCompatibility JavaVersion.VERSION_1_8
+    }
+}
+
+dependencies {
+    implementation fileTree(dir: 'libs', include: ['*.jar'])
+    api "com.github.TangKe:ContextInjectorAnnotations:${versions.versionName}"
+    api "com.google.auto.service:auto-service-annotations:${versions.library.auto}"
+}
+
+publishing {
+    publications {
+        release(MavenPublication) {
+            artifactId = 'ContextInjector'
+            groupId = 'com.github.Tangke'
+            version = versions.versionName
+            afterEvaluate {
+                from components.release
+            }
+            pom {
+                name = 'ContextInjector'
+                description = 'Inject android application context any where'
+                url = 'http://github.com/TangKe/Refresh'
+                licenses {
+                    license {
+                        name = 'The Apache Software License, Version 2.0'
+                        url = 'http://www.apache.org/licenses/LICENSE-2.0.txt'
+                    }
+                }
+                developers {
+                    developer {
+                        id = 'tangke'
+                        name = 'Tang Ke'
+                        email = 'tang.ke@me.com'
+                    }
+                }
+                scm {
+                    url = 'http://github.com/TangKe/ContextInjector.git'
+                }
+            }
+        }
+    }
+}
